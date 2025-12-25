@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 
 # 1. Configuração e Inicialização
 st.set_page_config(page_title="Lista de Compras", page_icon="🛒")
@@ -6,45 +7,51 @@ st.set_page_config(page_title="Lista de Compras", page_icon="🛒")
 if 'carrinho' not in st.session_state:
     st.session_state.carrinho = []
 
-st.title("🛒 Minha Lista de Compras")
+st.title("🛒 Lista de Compras")
 
-# 2. Adicionar Itens
-with st.form("form_novo", clear_on_submit=True):
-    col1, col2 = st.columns([3, 1])
-    nome = col1.text_input("Item:")
-    qtd = col2.number_input("Qtd:", min_value=1, value=1)
+# 2. Formulário para Adicionar
+with st.form("add_item", clear_on_submit=True):
+    col_n, col_q = st.columns([3, 1])
+    nome = col_n.text_input("Produto:")
+    qtd = col_q.number_input("Qtd:", min_value=1, value=1)
     if st.form_submit_button("Adicionar"):
         if nome:
-            # Cada item ganha um ID único baseado no tempo para não dar erro de chave
-            import time
-            novo_item = {"id": str(time.time()), "nome": nome, "qtd": qtd, "finalizado": False}
-            st.session_state.carrinho.append(novo_item)
+            # Geramos um ID único para o item não "se perder" entre as colunas
+            id_item = f"{nome}_{time.time()}"
+            st.session_state.carrinho.append({"id": id_item, "nome": nome, "qtd": qtd, "finalizado": False})
             st.rerun()
 
 st.divider()
 
-# 3. EXIBIÇÃO (O segredo está aqui)
+# 3. FILTRAGEM PRÉVIA (O segredo para as colunas não sumirem)
+pendentes = [item for item in st.session_state.carrinho if not item["finalizado"]]
+concluidos = [item for item in st.session_state.carrinho if item["finalizado"]]
+
 col_esq, col_dir = st.columns(2)
 
-# Usamos uma cópia da lista para iterar com segurança
-for i, item in enumerate(st.session_state.carrinho):
-    if not item["finalizado"]:
-        with col_esq:
-            # Se marcar aqui, ele muda o status e recarrega
-            if st.checkbox(f"{item['nome']} ({item['qtd']}x)", key=item["id"]):
-                st.session_state.carrinho[i]["finalizado"] = True
-                st.rerun()
-    else:
-        with col_dir:
-            # Se desmarcar aqui, ele volta para a esquerda
-            # value=True porque ele JÁ está finalizado
-            if st.checkbox(f"~~{item['nome']}~~", value=True, key=item["id"]):
-                st.session_state.carrinho[i]["finalizado"] = False
-                st.rerun()
+with col_esq:
+    st.subheader("⏳ Pendentes")
+    for item in pendentes:
+        # Quando clica, procuramos o item na lista original pelo ID e mudamos para True
+        if st.checkbox(f"{item['nome']} ({item['qtd']}x)", key=f"p_{item['id']}"):
+            for i in st.session_state.carrinho:
+                if i['id'] == item['id']:
+                    i['finalizado'] = True
+            st.rerun()
+
+with col_dir:
+    st.subheader("✅ No Carrinho")
+    for item in concluidos:
+        # Quando desmarca, procuramos o ID e mudamos para False
+        if st.checkbox(f"~~{item['nome']}~~", value=True, key=f"c_{item['id']}"):
+            for i in st.session_state.carrinho:
+                if i['id'] == item['id']:
+                    i['finalizado'] = False
+            st.rerun()
 
 st.divider()
 
-# 4. BOTÃO LIMPAR (Agora ele apaga TUDO)
+# 4. BOTÃO LIMPAR (Limpa TUDO com 100% de certeza)
 if st.button("🗑️ Limpar Lista Completa", use_container_width=True):
-    st.session_state.carrinho = [] # Esvazia a lista inteira, marcados ou não
+    st.session_state.carrinho = []
     st.rerun()
