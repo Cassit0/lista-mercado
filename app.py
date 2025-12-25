@@ -1,46 +1,58 @@
 import streamlit as st
 
-st.set_page_config(page_title="Meu Mercado", page_icon="🛒")
+st.set_page_config(page_title="Checklist de Mercado", page_icon="🛒")
 
-st.title("🛒 Lista de Compras")
+st.title("🛒 Minha Lista Prática")
 
 if 'carrinho' not in st.session_state:
     st.session_state.carrinho = []
 
-# --- FORMULÁRIO QUE LIMPA SOZINHO ---
-with st.form("meu_formulario", clear_on_submit=True):
-    nome = st.text_input("O que vai comprar?")
-    col1, col2 = st.columns(2)
-    with col1:
-        qtd = st.number_input("Qtd", min_value=1, step=1, value=1)
-    with col2:
-        preco = st.number_input("Preço R$", min_value=0.0, step=0.10, value=0.0)
-    
-    # O botão de enviar o formulário
-    submit = st.form_submit_button("➕ Adicionar Item", use_container_width=True)
-
-# Lógica fora do formulário para processar o item
-if submit:
-    if nome and preco >= 0:
-        st.session_state.carrinho.append({
-            "nome": nome, 
-            "qtd": qtd, 
-            "preco": preco, 
-            "subtotal": qtd * preco
-        })
-        st.rerun() # Recarrega para mostrar o item na lista abaixo
+# --- PARTE 1: ANOTAR (O que você faz em casa) ---
+with st.expander("➕ Adicionar Itens à Lista", expanded=True):
+    with st.form("add_item", clear_on_submit=True):
+        nome = st.text_input("Produto")
+        col1, col2 = st.columns(2)
+        qtd = col1.number_input("Qtd", min_value=1, value=1)
+        preco = col2.number_input("Preço Est. (R$)", min_value=0.0, value=0.0, step=0.10)
+        if st.form_submit_button("Salvar na Lista"):
+            if nome:
+                st.session_state.carrinho.append({
+                    "nome": nome, 
+                    "qtd": qtd, 
+                    "preco": preco,
+                    "finalizado": False # Novo campo para o "Check"
+                })
+                st.rerun()
 
 st.divider()
 
-# --- EXIBIÇÃO ---
-total_geral = 0
-for i, item in enumerate(st.session_state.carrinho):
-    c1, c2 = st.columns([4, 1])
-    c1.write(f"**{item['nome']}** - {item['qtd']}x R${item['preco']:.2f}")
-    if c2.button("🗑️", key=f"del_{i}"):
-        st.session_state.carrinho.pop(i)
-        st.rerun()
-    total_geral += item['subtotal']
+# --- PARTE 2: TICAR (O que você faz no mercado) ---
+st.subheader("Sua Lista:")
+total_confirmado = 0
+
+if not st.session_state.carrinho:
+    st.info("Sua lista está vazia!")
+else:
+    for i, item in enumerate(st.session_state.carrinho):
+        # Cria uma linha com checkbox e informações
+        col_check, col_info = st.columns([1, 4])
+        
+        # O checkbox define se o item foi "finalizado" (colocado no carrinho)
+        item_checado = col_check.checkbox("", value=item["finalizado"], key=f"check_{i}")
+        st.session_state.carrinho[i]["finalizado"] = item_checado
+        
+        if item_checado:
+            # Se tiver riscado, mostra com um estilo diferente (opcional) e soma no total
+            col_info.write(f"~~{item['nome']} ({item['qtd']}x)~~")
+            total_confirmado += (item['qtd'] * item['preco'])
+        else:
+            col_info.write(f"**{item['nome']}** ({item['qtd']}x) - R$ {item['preco']:.2f}")
 
 st.divider()
-st.metric("Total no Carrinho", f"R$ {total_geral:.2f}")
+
+# --- PARTE 3: O TOTAL DO QUE JÁ ESTÁ NO CARRINHO ---
+st.metric("Total no Carrinho", f"R$ {total_confirmado:.2f}")
+
+if st.button("Limpar Lista"):
+    st.session_state.carrinho = []
+    st.rerun()
