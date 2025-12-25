@@ -16,29 +16,35 @@ with st.expander("➕ Adicionar Novo Item", expanded=True):
         if btn_add and nome:
             st.session_state.carrinho.append({"nome": nome, "qtd": qtd, "finalizado": False})
             st.rerun()
+            
 st.divider()
 
-# 1. CRIAR LISTAS SEPARADAS ANTES DE MOSTRAR NA TELA
-# Isso evita que o Streamlit se perca nos índices
-itens_pendentes = [i for i in st.session_state.carrinho if not i.get("finalizado", False)]
-itens_no_carrinho = [i for i in st.session_state.carrinho if i.get("finalizado", False)]
+# Garantir que as colunas existam
+col_esq, col_dir = st.columns(2)
 
-col1, col2 = st.columns(2)
+# Filtrar as listas antes de exibir para evitar erros de índice
+pendentes = [item for item in st.session_state.carrinho if not item.get("finalizado")]
+no_carrinho = [item for item in st.session_state.carrinho if item.get("finalizado")]
 
-with col1:
+with col_esq:
     st.subheader("⏳ Pendentes")
-    for item in itens_pendentes:
-        # Usamos o nome do item na KEY para ser um identificador único
-        if st.checkbox(f"{item['nome']} ({item['qtd']}x)", key=f"p_{item['nome']}"):
-            item["finalizado"] = True
+    for item in pendentes:
+        # Usamos o nome do item como chave para ser único
+        if st.checkbox(f"{item['nome']} ({item['qtd']}x)", key=f"check_{item['nome']}"):
+            # Localizar o item na lista original e marcar como finalizado
+            for i, original in enumerate(st.session_state.carrinho):
+                if original['nome'] == item['nome']:
+                    st.session_state.carrinho[i]["finalizado"] = True
             st.rerun()
 
-with col2:
+with col_dir:
     st.subheader("✅ No Carrinho")
-    for item in itens_no_carrinho:
-        # Mostra o item riscado. Se desmarcar, ele volta para pendente
-        if st.checkbox(f"~~{item['nome']}~~", value=True, key=f"c_{item['nome']}"):
-            item["finalizado"] = False
+    for item in no_carrinho:
+        # Se clicar aqui, ele volta para a lista de pendentes
+        if st.checkbox(f"~~{item['nome']}~~", value=True, key=f"uncheck_{item['nome']}"):
+            for i, original in enumerate(st.session_state.carrinho):
+                if original['nome'] == item['nome']:
+                    st.session_state.carrinho[i]["finalizado"] = False
             st.rerun()
 # 4. BOTÃO PARA LIMPAR TUDO (OPCIONAL)
 if st.sidebar.button("Limpar Lista"):
