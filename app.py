@@ -17,7 +17,6 @@ with st.expander("➕ Adicionar Novo Item", expanded=True):
             st.session_state.carrinho.append({"nome": nome, "qtd": qtd, "finalizado": False})
             st.rerun()
 
-st.divider()
 
 st.divider()
 
