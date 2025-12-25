@@ -19,29 +19,31 @@ with st.expander("➕ Adicionar Novo Item", expanded=True):
 
 st.divider()
 
-# 3. EXIBIÇÃO - O TRECHO QUE VOCÊ COLOCOU
-col_pendente, col_carrinho = st.columns(2)
+st.divider()
 
-with col_pendente:
+# Criamos duas colunas reais para o visual ficar organizado
+col1, col2 = st.columns(2)
+
+with col1:
     st.subheader("⏳ Pendentes")
-    # Usamos uma cópia da lista para evitar erros de índice ao alterar o estado
+    # Percorre a lista e só mostra o que finalizado == False
     for i, item in enumerate(st.session_state.carrinho):
-        if not item["finalizado"]:
-            # O segredo é a KEY única (p_ + nome + indice)
-            if st.checkbox(f"{item['nome']} ({item['qtd']}x)", key=f"p_{i}_{item['nome']}"):
+        if not item.get("finalizado", False): 
+            # O segredo: a chave (key) precisa ser única para o Streamlit não se perder
+            if st.checkbox(f"{item['nome']} ({item['qtd']}x)", key=f"pendente_{i}_{item['nome']}"):
                 st.session_state.carrinho[i]["finalizado"] = True
                 st.rerun()
 
-with col_carrinho:
+with col2:
     st.subheader("✅ No Carrinho")
+    # Percorre a lista novamente e só mostra o que finalizado == True
     for i, item in enumerate(st.session_state.carrinho):
-        if item["finalizado"]:
-            # Se quiser desmarcar e voltar para pendente:
-            if st.checkbox(f"~~{item['nome']}~~", value=True, key=f"c_{i}_{item['nome']}"):
-                # Se ele desmarcar o que já estava feito
+        if item.get("finalizado", False):
+            # Usamos outro checkbox ou apenas um texto riscado
+            # Se quiser poder "desmarcar" para ele voltar para a lista de cima:
+            if st.checkbox(f"~~{item['nome']}~~", value=True, key=f"pago_{i}_{item['nome']}"):
                 st.session_state.carrinho[i]["finalizado"] = False
                 st.rerun()
-
 # 4. BOTÃO PARA LIMPAR TUDO (OPCIONAL)
 if st.sidebar.button("Limpar Lista"):
     st.session_state.carrinho = []
